@@ -2,3 +2,4 @@ $ conda env create -f environment.yml -- create modone environment
 conda activate modone  --- activate the environment modone
 conda env list   --- check the environment list
 Download the dataset SGJobData.csv to your local folder and then drag and drop directly in VScode under this project.
+Select the Kernel 'modone' before running the Code_File.ipynb
