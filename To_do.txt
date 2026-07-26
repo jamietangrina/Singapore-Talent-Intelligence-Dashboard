@@ -1,0 +1,3 @@
+$ conda env create -f environment.yml -- create modone environment
+conda activate modone  --- activate the environment modone
+conda env list   --- check the environment list
