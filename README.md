@@ -2,6 +2,8 @@
 
 An empirical study that decodes Singapore's skills market landscape to identify structural skill shortages and forecast future workforce demand.
 
+The **Singapore Workforce & Skills Demand Intelligence Dashboard** bridges these gaps by transforming raw posting and application behavior into actionable labor market intelligence for Manpower Policy Analysts (e.g., MOM, SSG, WSG) who require real-time labor market signals beyond delayed annual or quarterly surveys.
+
 ---
 
 ## Business Scenario
@@ -22,11 +24,6 @@ This dashboard identifies talent demand and skills gaps to:
   - Forecast talent shortages before they impact business operations
   - Guide educational institutions and training providers on priority skill development areas
   - Support policy makers in designing targeted workforce development programs that address real market needs
-
-
-* **Manpower Policy Analysts (e.g., MOM, SSG, WSG)** require real-time labor market signals beyond delayed annual or quarterly surveys.
-
-The **Singapore Workforce & Skills Demand Intelligence Dashboard** bridges these gaps by transforming raw posting and application behavior into actionable labor market intelligence.
 
 ---
 
