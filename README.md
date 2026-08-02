@@ -2,7 +2,7 @@
 
 An empirical study that decodes Singapore's skills market landscape to identify structural skill shortages and forecast future workforce demand.
 
-The **Singapore Workforce & Skills Demand Intelligence Dashboard** bridges these gaps by transforming raw posting and application behavior into actionable labor market intelligence for Manpower Policy Analysts (e.g., MOM, SSG, WSG) whom require real-time labor market signals beyond delayed annual or quarterly surveys.
+The **Singapore Workforce & Skills Demand Intelligence Dashboard** bridges these gaps by transforming raw posting and application behavior into actionable labor market intelligence for Manpower Policy Analysts (e.g., MOM, SSG, WSG) who require real-time labor market signals beyond delayed annual or quarterly surveys.
 
 ---
 
