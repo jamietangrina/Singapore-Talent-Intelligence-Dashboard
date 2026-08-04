@@ -147,98 +147,6 @@ fig = px.bar(
 )
 
 fig.update_layout(
-    height=700,
-    font=dict(size=18),
-    title_font=dict(size=28),
-    xaxis=dict(
-        title_font=dict(size=20),
-        tickfont=dict(size=16)
-    ),
-    yaxis=dict(
-        title_font=dict(size=20),
-        tickfont=dict(size=16)
-    )
-)
-
-st.plotly_chart(
-    fig,
-    use_container_width=True
-)
-
-# ==========================================
-# SECTORS EXPERIENCING SKILLS GAPS
-# ==========================================
-
-st.subheader("Which sectors may be struggling to find enough applicants?")
-st.caption(
-    "Sectors with fewer applications per vacancy may indicate a potential skills gap."
-)
-
-# Explode categories
-df_exploded = df_clean.explode('parsed_categories')
-
-# Calculate sector metrics
-sector_metrics = df_exploded.groupby('parsed_categories').agg(
-    total_postings=('metadata_jobPostId', 'count'),
-    total_vacancies=('numberOfVacancies', 'sum'),
-    total_applications=('metadata_totalNumberJobApplication', 'sum'),
-    avg_repost_count=('metadata_repostCount', 'mean'),
-    avg_salary=('average_salary', 'mean'),
-    avg_years_exp=('minimumYearsExperience', 'mean')
-).reset_index()
-
-sector_metrics = sector_metrics.rename(
-    columns={'parsed_categories': 'Sectors'}
-)
-
-# Only include sectors with at least 30 postings
-sector_metrics = sector_metrics[
-    sector_metrics['total_postings'] >= 30
-]
-
-# Calculate applications per vacancy
-sector_metrics['apps_per_vacancy'] = (
-    sector_metrics['total_applications'] /
-    sector_metrics['total_vacancies']
-).replace([np.inf, -np.inf], np.nan)
-
-# Identify potential skills gaps
-shortages = sector_metrics.sort_values(
-    by=['avg_repost_count', 'apps_per_vacancy'],
-    ascending=[False, True]
-).dropna(subset=['apps_per_vacancy'])
-
-# Select columns to display
-columns_to_display = [
-    'Sectors',
-    'total_vacancies',
-    'avg_repost_count',
-    'apps_per_vacancy',
-    'avg_salary'
-]
-
-# Display table
-st.dataframe(
-    shortages[columns_to_display].head(10),
-    use_container_width=True
-)
-shortage_chart_data = shortages.head(10).sort_values(
-    "apps_per_vacancy",
-    ascending=False
-)
-fig = px.bar(
-    shortage_chart_data,
-    x="apps_per_vacancy",
-    y="Sectors",
-    orientation="h",
-    title="Top 10 Sectors with Lowest Applications per Vacancy",
-    labels={
-        "apps_per_vacancy": "Applications per Vacancy",
-        "Sectors": "Sector"
-    }
-)
-
-fig.update_layout(
     height=600,
     font=dict(size=16),
     title_font=dict(size=24),
@@ -252,22 +160,13 @@ fig.update_layout(
     )
 )
 
+
 st.plotly_chart(
     fig,
     use_container_width=True
 )
-# ==========================================
-# HIGHEST TALENT DEMAND BY SECTOR
-# ==========================================
 
-st.subheader("Which sectors have the highest talent demand?")
-
-st.caption(
-    "Sectors with more vacancies represent higher employer demand for talent."
-)
-
-# Field categories with the highest talent demand
-high_demand = (
+sector_data = (
     df_clean
     .explode('parsed_categories')
     .groupby('parsed_categories')
@@ -280,151 +179,36 @@ high_demand = (
     .reset_index()
 )
 
-# Rename category to Sectors
-high_demand = high_demand.rename(
-    columns={'parsed_categories': 'Sectors'}
-)
-
-# Only include sectors with at least 30 job postings
-high_demand = high_demand[
-    high_demand['total_postings'] >= 30
-]
-
-# Calculate applications per vacancy
-high_demand['applications_per_vacancy'] = (
-    high_demand['total_applications'] /
-    high_demand['total_vacancies']
-).replace([np.inf, -np.inf], np.nan)
-
-# Sort by highest demand
-high_demand = high_demand.sort_values(
-    by=['total_vacancies', 'applications_per_vacancy'],
-    ascending=[False, True]
-).dropna(subset=['applications_per_vacancy'])
-
-
-# ------------------------------------------
-# TABLE
-# ------------------------------------------
-
-st.dataframe(
-    high_demand.head(10),
-    use_container_width=True
-)
-
-
-# ------------------------------------------
-# BAR CHART
-# ------------------------------------------
-
-high_demand_chart = high_demand.head(10).sort_values(
-    'total_vacancies',
-    ascending=True
-)
-
-fig = px.bar(
-    high_demand_chart,
-    x='total_vacancies',
-    y='Sectors',
-    orientation='h',
-    title='Top 10 Sectors with Highest Demand',
-    labels={
-        'total_vacancies': 'Total Vacancies',
-        'Sectors': 'Sector'
-    }
-)
-
-fig.update_layout(
-    height=600,
-    font=dict(size=16),
-    title_font=dict(size=24),
-    xaxis=dict(
-        title_font=dict(size=18),
-        tickfont=dict(size=14)
-    ),
-    yaxis=dict(
-        title_font=dict(size=18),
-        tickfont=dict(size=14)
-    )
-)
-
-st.plotly_chart(
-    fig,
-    use_container_width=True
-)
-# ==========================================
-# HIGH DEMAND VS LOW APPLICATIONS
-# ==========================================
-
-st.subheader("Which sectors have high demand and low applicant supply?")
-
-st.caption(
-    "Sectors with many vacancies and fewer applications per vacancy "
-    "may indicate a potential skills gap."
-)
-
-# Create sector-level data
-sector_comparison = (
-    df_clean
-    .explode('parsed_categories')
-    .groupby('parsed_categories')
-    .agg(
-        total_postings=('metadata_jobPostId', 'count'),
-        total_vacancies=('numberOfVacancies', 'sum'),
-        total_applications=('metadata_totalNumberJobApplication', 'sum')
-    )
-    .reset_index()
-)
-
 # Rename sector column
-sector_comparison = sector_comparison.rename(
+sector_data = sector_data.rename(
     columns={'parsed_categories': 'Sectors'}
 )
 
-# Remove sectors with too few postings
-sector_comparison = sector_comparison[
-    sector_comparison['total_postings'] >= 30
+# Same filter for BOTH analyses
+sector_data = sector_data[
+    sector_data['total_postings'] >= 30
 ]
 
 # Calculate applications per vacancy
-sector_comparison['applications_per_vacancy'] = (
-    sector_comparison['total_applications'] /
-    sector_comparison['total_vacancies']
+sector_data['applications_per_vacancy'] = (
+    sector_data['total_applications'] /
+    sector_data['total_vacancies']
 ).replace([np.inf, -np.inf], np.nan)
 
 # Remove invalid values
-sector_comparison = sector_comparison.dropna(
-    subset=['applications_per_vacancy']
+sector_data = sector_data.dropna(
+    subset=['applications_per_vacancy'])
+
+st.subheader("Which sectors have the highest talent demand?")
+
+st.caption(
+    "Sectors with more vacancies represent higher employer demand for talent."
 )
-demand_chart = high_demand.sort_values(
-    'total_vacancies',
-    ascending=True
-)
 
-
-# ==========================================
-# FIND HIGH-DEMAND SECTORS
-# ==========================================
-
-high_demand = sector_comparison.sort_values(
+high_demand = sector_data.sort_values(
     'total_vacancies',
     ascending=False
 ).head(10)
-
-# ==========================================
-# FIND LOW APPLICATIONS PER VACANCY
-# ==========================================
-
-low_applications = sector_comparison.sort_values(
-    'applications_per_vacancy',
-    ascending=True
-).head(10)
-
-# ==========================================
-# DISPLAY BOTH
-# ==========================================
-
-st.write("### Highest Demand Sectors")
 
 st.dataframe(
     high_demand[
@@ -436,10 +220,40 @@ st.dataframe(
         ]
     ],
     use_container_width=True
+)  
+
+high_demand_chart = high_demand.sort_values(
+    'total_vacancies',
+    ascending=True
 )
 
+fig = px.bar(
+    high_demand_chart,
+    x='total_vacancies',
+    y='Sectors',
+    orientation='h',
+    title='Top 10 Sectors with Highest Talent Demand',
+    labels={
+        'total_vacancies': 'Total Vacancies',
+        'Sectors': 'Sector'
+    }
+)
 
-st.write("### Lowest Applications per Vacancy")
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
+
+st.subheader("Which sectors may be struggling to find enough applicants?")
+
+st.caption(
+    "Sectors with fewer applications per vacancy may indicate a potential skills gap."
+)
+
+low_applications = sector_data.sort_values(
+    'applications_per_vacancy',
+    ascending=True
+).head(10)
 
 st.dataframe(
     low_applications[
@@ -452,16 +266,45 @@ st.dataframe(
     ],
     use_container_width=True
 )
+low_applications_chart = low_applications.sort_values(
+    'applications_per_vacancy',
+    ascending=False
+)
+
+fig = px.bar(
+    low_applications_chart,
+    x='applications_per_vacancy',
+    y='Sectors',
+    orientation='h',
+    title='Top 10 Sectors with Lowest Applications per Vacancy',
+    labels={
+        'applications_per_vacancy': 'Applications per Vacancy',
+        'Sectors': 'Sector'
+    }
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
 
 # ==========================================
-# SECTORS APPEARING IN BOTH
+# COMPARE HIGH DEMAND + LOW APPLICANT SUPPLY
 # ==========================================
 
+st.subheader("Which sectors show potential skills gaps?")
+
+st.caption(
+    "These sectors have high vacancy demand and relatively "
+    "low applications per vacancy."
+)
+
+# Get sectors appearing in BOTH top 10 lists
 high_demand_sectors = set(high_demand['Sectors'])
 low_supply_sectors = set(low_applications['Sectors'])
 
-potential_gaps = sector_comparison[
-    sector_comparison['Sectors'].isin(
+potential_gaps = sector_data[
+    sector_data['Sectors'].isin(
         high_demand_sectors & low_supply_sectors
     )
 ].sort_values(
@@ -469,13 +312,7 @@ potential_gaps = sector_comparison[
     ascending=True
 )
 
-st.write("### Potential Skills Gaps")
-
-st.caption(
-    "These sectors have both high vacancy demand and relatively "
-    "low applications per vacancy."
-)
-
+# Show table
 st.dataframe(
     potential_gaps[
         [
@@ -487,13 +324,18 @@ st.dataframe(
     ],
     use_container_width=True
 )
+
+# ==========================================
+# SCATTER PLOT
+# ==========================================
+
 fig = px.scatter(
-    sector_comparison,
+    sector_data,
     x="total_vacancies",
     y="applications_per_vacancy",
     hover_name="Sectors",
     size="total_vacancies",
-    title="High Demand vs Applications per Vacancy",
+    title="High Talent Demand vs Applicant Supply",
     labels={
         "total_vacancies": "Total Vacancies",
         "applications_per_vacancy": "Applications per Vacancy"
@@ -518,9 +360,398 @@ st.plotly_chart(
     fig,
     use_container_width=True
 )
+
 st.caption(
-    "Sectors in the bottom-right have high vacancy demand "
-    "but relatively fewer applications per vacancy, indicating "
-    "a potential skills gap."
+    "Sectors toward the bottom-right have high vacancy demand "
+    "but relatively fewer applications per vacancy, which may "
+    "indicate a potential skills gap."
 )
+# # ==========================================
+# # SECTORS EXPERIENCING SKILLS GAPS
+# # ==========================================
+
+# st.subheader("Which sectors may be struggling to find enough applicants?")
+# st.caption(
+#     "Sectors with fewer applications per vacancy may indicate a potential skills gap."
+# )
+
+# # Explode categories
+# df_exploded = df_clean.explode('parsed_categories')
+
+# # Calculate sector metrics
+# sector_metrics = df_exploded.groupby('parsed_categories').agg(
+#     total_postings=('metadata_jobPostId', 'count'),
+#     total_vacancies=('numberOfVacancies', 'sum'),
+#     total_applications=('metadata_totalNumberJobApplication', 'sum'),
+#     avg_repost_count=('metadata_repostCount', 'mean'),
+#     avg_salary=('average_salary', 'mean'),
+#     avg_years_exp=('minimumYearsExperience', 'mean')
+# ).reset_index()
+
+# sector_metrics = sector_metrics.rename(
+#     columns={'parsed_categories': 'Sectors'}
+# )
+
+# # Only include sectors with at least 30 postings
+# sector_metrics = sector_metrics[
+#     sector_metrics['total_postings'] >= 30
+# ]
+
+# # Calculate applications per vacancy
+# sector_metrics['apps_per_vacancy'] = (
+#     sector_metrics['total_applications'] /
+#     sector_metrics['total_vacancies']
+# ).replace([np.inf, -np.inf], np.nan)
+
+# # Identify potential skills gaps
+# shortages = sector_metrics.sort_values(
+#     by=['avg_repost_count', 'apps_per_vacancy'],
+#     ascending=[False, True]
+# ).dropna(subset=['apps_per_vacancy'])
+
+# # Select columns to display
+# columns_to_display = [
+#     'Sectors',
+#     'total_vacancies',
+#     'avg_repost_count',
+#     'apps_per_vacancy',
+#     'avg_salary'
+# ]
+
+# # Display table
+# st.dataframe(
+#     shortages[columns_to_display].head(10),
+#     use_container_width=True
+# )
+# shortage_chart_data = shortages.head(10).sort_values(
+#     "apps_per_vacancy",
+#     ascending=False
+# )
+# fig = px.bar(
+#     shortage_chart_data,
+#     x="apps_per_vacancy",
+#     y="Sectors",
+#     orientation="h",
+#     title="Top 10 Sectors with Lowest Applications per Vacancy",
+#     labels={
+#         "apps_per_vacancy": "Applications per Vacancy",
+#         "Sectors": "Sector"
+#     }
+# )
+
+# fig.update_layout(
+#     height=600,
+#     font=dict(size=16),
+#     title_font=dict(size=24),
+#     xaxis=dict(
+#         title_font=dict(size=18),
+#         tickfont=dict(size=14)
+#     ),
+#     yaxis=dict(
+#         title_font=dict(size=18),
+#         tickfont=dict(size=14)
+#     )
+# )
+
+# st.plotly_chart(
+#     fig,
+#     use_container_width=True
+# )
+# ==========================================
+# HIGHEST TALENT DEMAND BY SECTOR
+# ==========================================
+
+st.subheader("Which sectors have the highest talent demand?")
+
+st.caption(
+    "Sectors with more vacancies represent higher employer demand for talent."
+)
+
+# # Field categories with the highest talent demand
+# high_demand = (
+#     df_clean
+#     .explode('parsed_categories')
+#     .groupby('parsed_categories')
+#     .agg(
+#         total_postings=('metadata_jobPostId', 'count'),
+#         total_vacancies=('numberOfVacancies', 'sum'),
+#         total_applications=('metadata_totalNumberJobApplication', 'sum'),
+#         avg_reposts=('metadata_repostCount', 'mean')
+#     )
+#     .reset_index()
+# )
+
+# # Rename category to Sectors
+# high_demand = high_demand.rename(
+#     columns={'parsed_categories': 'Sectors'}
+# )
+
+# # Only include sectors with at least 30 job postings
+# high_demand = high_demand[
+#     high_demand['total_postings'] >= 30
+# ]
+
+# # Calculate applications per vacancy
+# high_demand['applications_per_vacancy'] = (
+#     high_demand['total_applications'] /
+#     high_demand['total_vacancies']
+# ).replace([np.inf, -np.inf], np.nan)
+
+# # Sort by highest demand
+# high_demand = high_demand.sort_values(
+#     by=['total_vacancies', 'applications_per_vacancy'],
+#     ascending=[False, True]
+# ).dropna(subset=['applications_per_vacancy'])
+
+
+# # ------------------------------------------
+# # TABLE
+# # ------------------------------------------
+
+# st.dataframe(
+#     high_demand.head(10),
+#     use_container_width=True
+# )
+
+
+# # ------------------------------------------
+# # BAR CHART
+# # ------------------------------------------
+
+# high_demand_chart = high_demand.head(10).sort_values(
+#     'total_vacancies',
+#     ascending=True
+# )
+
+# fig = px.bar(
+#     high_demand_chart,
+#     x='total_vacancies',
+#     y='Sectors',
+#     orientation='h',
+#     title='Top 10 Sectors with Highest Demand',
+#     labels={
+#         'total_vacancies': 'Total Vacancies',
+#         'Sectors': 'Sector'
+#     }
+# )
+
+# fig.update_layout(
+#     height=600,
+#     font=dict(size=16),
+#     title_font=dict(size=24),
+#     xaxis=dict(
+#         title_font=dict(size=18),
+#         tickfont=dict(size=14)
+#     ),
+#     yaxis=dict(
+#         title_font=dict(size=18),
+#         tickfont=dict(size=14)
+#     )
+# )
+
+# st.plotly_chart(
+#     fig,
+#     use_container_width=True
+# )
+# # ==========================================
+# # HIGH DEMAND VS LOW APPLICATIONS
+# # ==========================================
+
+# st.subheader("Which sectors have high demand and low applicant supply?")
+
+# st.caption(
+#     "Sectors with many vacancies and fewer applications per vacancy "
+#     "may indicate a potential skills gap."
+# )
+
+# # Create sector-level data
+# sector_comparison = (
+#     df_clean
+#     .explode('parsed_categories')
+#     .groupby('parsed_categories')
+#     .agg(
+#         total_postings=('metadata_jobPostId', 'count'),
+#         total_vacancies=('numberOfVacancies', 'sum'),
+#         total_applications=('metadata_totalNumberJobApplication', 'sum')
+#     )
+#     .reset_index()
+# )
+
+# # Rename sector column
+# sector_comparison = sector_comparison.rename(
+#     columns={'parsed_categories': 'Sectors'}
+# )
+
+# # Remove sectors with too few postings
+# sector_comparison = sector_comparison[
+#     sector_comparison['total_postings'] >= 30
+# ]
+
+# # Calculate applications per vacancy
+# sector_comparison['applications_per_vacancy'] = (
+#     sector_comparison['total_applications'] /
+#     sector_comparison['total_vacancies']
+# ).replace([np.inf, -np.inf], np.nan)
+
+# # Remove invalid values
+# sector_comparison = sector_comparison.dropna(
+#     subset=['applications_per_vacancy']
+# )
+# demand_chart = high_demand.sort_values(
+#     'total_vacancies',
+#     ascending=True
+# )
+
+# fig = px.bar(
+#     shortage_chart_data,
+#     x="apps_per_vacancy",
+#     y="Sectors",
+#     orientation="h",
+#     title="Top 10 Sectors with Lowest Applications per Vacancy",
+#     labels={
+#         "apps_per_vacancy": "Applications per Vacancy",
+#         "Sectors": "Sector"
+#     }
+# )
+
+# fig.update_layout(
+#     height=600,
+#     font=dict(size=16),
+#     title_font=dict(size=24),
+#     xaxis=dict(
+#         title_font=dict(size=18),
+#         tickfont=dict(size=14)
+#     ),
+#     yaxis=dict(
+#         title_font=dict(size=18),
+#         tickfont=dict(size=14)
+#     )
+# )
+
+# st.plotly_chart(
+#     fig,
+#     use_container_width=True
+# )
+
+# # ==========================================
+# # FIND HIGH-DEMAND SECTORS
+# # ==========================================
+
+# high_demand = sector_comparison.sort_values(
+#     'total_vacancies',
+#     ascending=False
+# ).head(10)
+
+# # ==========================================
+# # FIND LOW APPLICATIONS PER VACANCY
+# # ==========================================
+
+# low_applications = sector_comparison.sort_values(
+#     'applications_per_vacancy',
+#     ascending=True
+# ).head(10)
+
+# # ==========================================
+# # DISPLAY BOTH
+# # ==========================================
+
+# st.write("### Highest Demand Sectors")
+
+# st.dataframe(
+#     high_demand[
+#         [
+#             'Sectors',
+#             'total_vacancies',
+#             'total_applications',
+#             'applications_per_vacancy'
+#         ]
+#     ],
+#     use_container_width=True
+# )
+
+
+# st.write("### Lowest Applications per Vacancy")
+
+# st.dataframe(
+#     low_applications[
+#         [
+#             'Sectors',
+#             'total_vacancies',
+#             'total_applications',
+#             'applications_per_vacancy'
+#         ]
+#     ],
+#     use_container_width=True
+# )
+
+# # ==========================================
+# # SECTORS APPEARING IN BOTH
+# # ==========================================
+
+# high_demand_sectors = set(high_demand['Sectors'])
+# low_supply_sectors = set(low_applications['Sectors'])
+
+# potential_gaps = sector_comparison[
+#     sector_comparison['Sectors'].isin(
+#         high_demand_sectors & low_supply_sectors
+#     )
+# ].sort_values(
+#     'applications_per_vacancy',
+#     ascending=True
+# )
+
+# st.write("### Potential Skills Gaps")
+
+# st.caption(
+#     "These sectors have both high vacancy demand and relatively "
+#     "low applications per vacancy."
+# )
+
+# st.dataframe(
+#     potential_gaps[
+#         [
+#             'Sectors',
+#             'total_vacancies',
+#             'total_applications',
+#             'applications_per_vacancy'
+#         ]
+#     ],
+#     use_container_width=True
+# )
+# fig = px.scatter(
+#     sector_comparison,
+#     x="total_vacancies",
+#     y="applications_per_vacancy",
+#     hover_name="Sectors",
+#     size="total_vacancies",
+#     title="High Demand vs Applications per Vacancy",
+#     labels={
+#         "total_vacancies": "Total Vacancies",
+#         "applications_per_vacancy": "Applications per Vacancy"
+#     }
+# )
+
+# fig.update_layout(
+#     height=600,
+#     font=dict(size=16),
+#     title_font=dict(size=24),
+#     xaxis=dict(
+#         title_font=dict(size=18),
+#         tickfont=dict(size=14)
+#     ),
+#     yaxis=dict(
+#         title_font=dict(size=18),
+#         tickfont=dict(size=14)
+#     )
+# )
+
+# st.plotly_chart(
+#     fig,
+#     use_container_width=True
+# )
+# st.caption(
+#     "Sectors in the bottom-right have high vacancy demand "
+#     "but relatively fewer applications per vacancy, indicating "
+#     "a potential skills gap."
+# )
 
