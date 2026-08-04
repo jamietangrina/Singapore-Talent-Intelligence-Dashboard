@@ -217,45 +217,45 @@ columns_to_display = [
     'avg_salary'
 ]
 
-# # Display table
-# st.dataframe(
-#     shortages[columns_to_display].head(10),
-#     use_container_width=True
-# )
-# shortage_chart_data = shortages.head(10).sort_values(
-#     "apps_per_vacancy",
-#     ascending=False
-# )
-# fig = px.bar(
-#     shortage_chart_data,
-#     x="apps_per_vacancy",
-#     y="Sectors",
-#     orientation="h",
-#     title="Top 10 Sectors with Lowest Applications per Vacancy",
-#     labels={
-#         "apps_per_vacancy": "Applications per Vacancy",
-#         "Sectors": "Sector"
-#     }
-# )
+# Display table
+st.dataframe(
+    shortages[columns_to_display].head(10),
+    use_container_width=True
+)
+shortage_chart_data = shortages.head(10).sort_values(
+    "apps_per_vacancy",
+    ascending=False
+)
+fig = px.bar(
+    shortage_chart_data,
+    x="apps_per_vacancy",
+    y="Sectors",
+    orientation="h",
+    title="Top 10 Sectors with Lowest Applications per Vacancy",
+    labels={
+        "apps_per_vacancy": "Applications per Vacancy",
+        "Sectors": "Sector"
+    }
+)
 
-# fig.update_layout(
-#     height=600,
-#     font=dict(size=16),
-#     title_font=dict(size=24),
-#     xaxis=dict(
-#         title_font=dict(size=18),
-#         tickfont=dict(size=14)
-#     ),
-#     yaxis=dict(
-#         title_font=dict(size=18),
-#         tickfont=dict(size=14)
-#     )
-# )
+fig.update_layout(
+    height=600,
+    font=dict(size=16),
+    title_font=dict(size=24),
+    xaxis=dict(
+        title_font=dict(size=18),
+        tickfont=dict(size=14)
+    ),
+    yaxis=dict(
+        title_font=dict(size=18),
+        tickfont=dict(size=14)
+    )
+)
 
-# st.plotly_chart(
-#     fig,
-#     use_container_width=True
-# )
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
 # ==========================================
 # HIGHEST TALENT DEMAND BY SECTOR
 # ==========================================
