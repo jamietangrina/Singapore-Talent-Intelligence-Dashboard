@@ -1,1 +1,2 @@
 SGJobData.csv
+.DS_Store
