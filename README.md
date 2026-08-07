@@ -36,7 +36,8 @@ This dashboard identifies talent demand and skills gaps to:
 | Investment & Trade | EDB & Ministry of Trade | Guides strategic investment sourcing—identifies which industries to prioritize based on talent availability and competitive advantage positioning. |
 
 # Data Handling and Process
-![Alt Text](Data_Pipeline.png)
+
+## ![Alt Text](Data_Pipeline.png)
 
 # Team challenges and our learnings
 
