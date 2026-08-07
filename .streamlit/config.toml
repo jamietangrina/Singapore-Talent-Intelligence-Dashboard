@@ -1,0 +1,15 @@
+[theme]
+# Forces the dark mode base theme
+base="dark"
+
+# The bright accent color (for sliders, buttons, etc.)
+primaryColor="#e1470fd8"
+
+# The very dark main background color
+backgroundColor="#111f3e"
+
+# The slightly lighter dark-grey sidebar background
+secondaryBackgroundColor="#434648"
+
+# Crisp white text for readability against the dark background
+textColor="#e5eaef"
