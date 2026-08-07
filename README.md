@@ -1,6 +1,8 @@
-# Singapore Workforce Skills: Demand & Gap Forecast
+# Singapore Workforce Resillience
+***Leveraging Data-Driven Insigths for Singapore’s Workforce Resilience and Economic Growth*
+** 
 
-An empirical study that decodes Singapore's skills market landscape to identify structural skill shortages and forecast future workforce demand.
+This is an empirical study that decodes Singapore's skills market landscape to identify structural skill shortages and forecast future workforce demands before shortages materialize. 
 
 The **Singapore Workforce & Skills Demand Intelligence Dashboard** bridges these gaps by transforming raw posting and application behavior into actionable labor market intelligence for Manpower Policy Analysts (e.g., MOM, SSG, WSG) who require real-time labor market signals beyond delayed annual or quarterly surveys.
 
