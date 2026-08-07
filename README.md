@@ -35,10 +35,8 @@ This dashboard identifies talent demand and skills gaps to:
 | Investment & Trade | EDB & Ministry of Trade | Skills gap data attracts targeted FDI by demonstrating workforce readiness in high-value sectors (semiconductors, AI, green tech). |
 | Investment & Trade | EDB & Ministry of Trade | Guides strategic investment sourcing—identifies which industries to prioritize based on talent availability and competitive advantage positioning. |
 
-<br>
-<br>
-<br>
-<br>
+# Data Handling and Process
+![Alt Text](Data_Pipeline.png)
 
 # Team challenges and our learnings
 
