@@ -37,7 +37,17 @@ This dashboard identifies talent demand and skills gaps to:
 
 # Data Handling and Process
 
-## ![Alt Text](Data_Pipeline.png)
+**Tools Used:** Engineered a robust, memory-efficient data pipeline using Python, Pandas, Duck DB, Streamlit, Plotly and the native JSON library.
+
+**Large-Scale Data Loading:** Successfully loaded the 1M+ row CSV without maxing out RAM by enforcing an aggressive memory downcasting strategy, mapping numerical data to smaller footprints (e.g., Int8, Int16) and repetitive text to category types via an optimized_dtypes dictionary.
+
+**Data Cleaning (Missing & Ghost Records):** Preemptively dropped the completely empty occupationId column to reclaim memory and utilized dropna to surgically purge invalid "ghost records" missing critical identifiers like title and metadata_jobPostId.
+
+**Data Cleaning (Parsing & Standardization):** Automatically standardized temporal data during the initial load using parse_dates and dayfirst=True, while safely extracting nested category tags from JSON strings into clean Python lists using a fault-tolerant try-except block.
+
+**EDA Highlights & Outlier Management:** Exploratory analysis revealed extreme, statistically impossible anomalies in the dataset, which were actively filtered out using boolean masks to remove jobs requiring over 50 years of experience or offering maximum salaries above $1,000,000.
+
+**Feature Engineering Foundation:** Dropped the raw, messy JSON string column after parsing and strategically retained the cleaned parsed_categories as intact lists; this ensures that downstream macro KPIs (like total vacancies) remain mathematically accurate without prematurely duplicating multi-tagged job rows.
 
 # Team challenges and our learnings
 
@@ -60,3 +70,20 @@ This dashboard identifies talent demand and skills gaps to:
 **Refining Team Workflows:** For future projects, we want to establish our GitHub branching strategy and data pipeline architecture before anyone writes a line of code, making collaboration even smoother.
 
 **Knowledge Sharing:** Since we divided and conquered different parts of the project (e.g., one person on cleaning, one on the dashboard), our next step is to do a thorough code-review session with each other so everyone fully understands the entire technical pipeline.
+
+# Tools & Setup
+- VS Code + Python + Jupyter extensions (recommended) + DuckDB: In-process analytical database engine + Streamlit.
+- Set up conda environment modone / pds
+- Environment: conda env create -f environment.yml then conda activate modone / pds.
+- Load the SGJobsData.csv under the data->raw folder
+- Notebooks: 
+  a. 01_data_exploration.ipynb
+  b. 02_data_cleaning.ipynb — select the modone / pds kernel in VS Code.
+  c. 03_data_visualization.ipynb — select the modone / pds kernel in VS Code.
+  Note: 01_data_exploration.ipynb shows the EDA data.
+- Run the notebook in sequence. 
+  --> 02_data_cleaning.ipynb
+  --> 03_data_visualization.ipynb
+  --> app.py (run the streamlit in the terminal)
+
+
