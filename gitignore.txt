@@ -1,2 +1,5 @@
 SGJobData.csv
 .DS_Store
+SGJobData_Cleaned.csv
+SGJobData_CleanedAndExploded.csv
+jobsdb.db

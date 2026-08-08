@@ -18,7 +18,7 @@ def load_data():
     conn = duckdb.connect("data/db/jobsdb.db")
     df = conn.execute("""
         SELECT *
-        FROM SGJobData_CleanedAndExploded limit 100000
+        FROM SGJobData_CleanedAndExploded
         """).fetchdf()
     conn.close()
     return df
@@ -33,6 +33,7 @@ st.header("Overview")
 
 with st.sidebar:
     st.header("Filters")
+    st.sidebar.image("logo.jpg",use_container_width=True)
     category_options = sorted(df["parsed_categories"].dropna().unique())
     selected_categories = st.multiselect(
         "Industry", category_options, default=category_options)
@@ -53,9 +54,9 @@ with st.sidebar:
     date_range = st.sidebar.date_input("Posting Date range", key="date_filter")
 
     st.sidebar.button("Reset date range", on_click=reset_date)
-
-    start_date, end_date = st.session_state.date_filter
-
+    #if len(st.session_state.date_filter) == 2:
+    #    start_date, end_date = st.session_state.date_filter
+    
 
     # # Date range picker in sidebar
     # date_range  = st.sidebar.date_input(
@@ -65,29 +66,69 @@ with st.sidebar:
     #     max(df["metadata_originalPostingDate"].max(), df["metadata_newPostingDate"].max()).date())
     # )
     
-df_filtered = df[df["parsed_categories"].isin(selected_categories)]
-if selected_employee_types != "All":
-    df_filtered = df_filtered[df_filtered["employmentTypes"] == selected_employee_types]
+# ============================================================
+# APPLY SIDEBAR FILTERS
+# ============================================================
 
+# Start with a copy of the complete dataframe
+df_filtered = df.copy()
+
+# ------------------------------------------------------------
+# 1. Industry filter
+# ------------------------------------------------------------
+if selected_categories:
+    df_filtered = df_filtered[
+        df_filtered["parsed_categories"].isin(selected_categories)
+    ]
+
+# ------------------------------------------------------------
+# 2. Employment Type filter
+# ------------------------------------------------------------
+if selected_employee_types != "All":
+    df_filtered = df_filtered[
+        df_filtered["employmentTypes"] == selected_employee_types
+    ]
+
+# ------------------------------------------------------------
+# 3. Date filter
+# ------------------------------------------------------------
 if len(date_range) == 2:
+
     start_date, end_date = map(pd.Timestamp, date_range)
 
-    df_filtered = df[
+    df_filtered = df_filtered[
         (
-            (df["metadata_originalPostingDate"] >= start_date) & (df["metadata_originalPostingDate"] <= end_date)
+            (
+                df_filtered["metadata_originalPostingDate"] >= start_date
+            )
+            &
+            (
+                df_filtered["metadata_originalPostingDate"] <= end_date
+            )
         )
         |
         (
-            (df["metadata_newPostingDate"] >= start_date) & (df["metadata_newPostingDate"] <= end_date)
+            (
+                df_filtered["metadata_newPostingDate"] >= start_date
+            )
+            &
+            (
+                df_filtered["metadata_newPostingDate"] <= end_date
+            )
         )
     ]
 
+elif len(date_range) == 1:
+    st.warning("Please select an end date")
 
 # 3. Basic KPI Info
 col1, col2, col3 = st.columns(3)
 col1.metric("Total Postings", len(df_filtered["metadata_jobPostId"].unique()))
 col2.metric("Sectors", len(df_filtered["parsed_categories"].unique()))
-col3.metric("Current Job Openings", df_filtered[df_filtered["status_jobStatus"] != "Closed"]["numberOfVacancies"].sum())
+df_clean = df_filtered.drop_duplicates("metadata_jobPostId")
+df_clean=df_clean[df_clean["status_jobStatus"] != "Closed"]
+col3.metric("Current Job Openings", df_clean["numberOfVacancies"].sum())
+
 with st.expander("View raw data"):
     st.dataframe(df_filtered.head(10))
 
@@ -95,19 +136,42 @@ with st.expander("View raw data"):
 tab1, tab2 = st.tabs(["Sectors Analysis", "Job Level Analysis"])
 
 with tab1:
+
+    # ============================================================
+    # HIGHEST PAYING JOB SECTORS
+    # ============================================================
     with st.expander("Highest Paying Job Sectors"):
+
         st.subheader("Highest Paying Job Sectors")
-        salary_by_sector = (df_filtered.groupby('parsed_categories')['average_salary']
-                            .mean()
-                            .sort_values(ascending=False)
-                            .reset_index()
-                            )
 
-        salary_by_sector = salary_by_sector.rename(columns={'parsed_categories': 'Sectors'})
+        salary_by_sector = (
+            df_filtered.groupby("parsed_categories")["average_salary"]
+            .mean()
+            .round()
+            .sort_values(ascending=False)
+            .reset_index()
+        )
 
-        st.dataframe(salary_by_sector.head(10),use_container_width=True)
+        salary_by_sector = salary_by_sector.rename(
+            columns={"parsed_categories": "Sectors"}
+        )
 
-        chart_data = salary_by_sector.head(10).sort_values("average_salary",ascending=True)
+        salary_by_sector["average_salary"] = (
+            salary_by_sector["average_salary"]
+            .round()
+            .astype(int)
+        )
+
+        st.dataframe(
+            salary_by_sector.head(10),
+            use_container_width=True,
+            hide_index=True
+        )
+
+        chart_data = (
+            salary_by_sector.head(10)
+            .sort_values("average_salary", ascending=True)
+        )
 
         fig = px.bar(
             chart_data,
@@ -115,6 +179,7 @@ with tab1:
             y="Sectors",
             orientation="h",
             title="Top 10 Highest Paying Job Sectors",
+            color_discrete_sequence=["#2E7D32"],
             labels={
                 "average_salary": "Average Salary ($)",
                 "Sectors": "Sector"
@@ -135,122 +200,243 @@ with tab1:
             )
         )
 
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    # ============================================================
+    # PREPARE SECTOR DATA
+    # ============================================================
+
+    sector_data = (
+        df_filtered.groupby("parsed_categories")
+        .agg(
+            total_postings=("metadata_jobPostId", "count"),
+            total_vacancies=("numberOfVacancies", "sum"),
+            total_applications=(
+                "metadata_totalNumberJobApplication",
+                "sum"
+            ),
+            avg_reposts=("metadata_repostCount", "mean")
+        )
+        .reset_index()
+    )
+
+    # Rename sector column
+    sector_data = sector_data.rename(
+        columns={"parsed_categories": "Sectors"}
+    )
+
+    # Same filter for BOTH analyses
+    sector_data = sector_data[
+        sector_data["total_postings"] >= 30
+    ]
+
+    # Calculate applications per vacancy
+    sector_data["applications_per_vacancy"] = (
+        sector_data["total_applications"]
+        / sector_data["total_vacancies"]
+    ).replace(
+        [np.inf, -np.inf],
+        np.nan
+    )
+
+    # Remove invalid values
+    sector_data = sector_data.dropna(
+        subset=["applications_per_vacancy"]
+    )
+
+    # Optional: round applications per vacancy
+    sector_data["applications_per_vacancy"] = (
+        sector_data["applications_per_vacancy"]
+        .round(2)
+        #.astype(int)
+    )
+
+    # ============================================================
+    # HIGHEST TALENT DEMAND
+    # ============================================================
+
+    with st.expander("Which sectors have the highest talent demand?"):
+
+        st.caption(
+            "Sectors with more vacancies represent higher "
+            "employer demand for talent."
+        )
+
+        high_demand = (
+            sector_data
+            .sort_values(
+                "total_vacancies",
+                ascending=False
+            )
+            .head(10)
+        )
+
+        st.dataframe(
+            high_demand[
+                [
+                    "Sectors",
+                    "total_vacancies",
+                    "total_applications",
+                    "applications_per_vacancy"
+                ]
+            ],
+            use_container_width=True,
+            hide_index=True
+        )
+
+        high_demand_chart = (
+            high_demand
+            .sort_values(
+                "total_vacancies",
+                ascending=True
+            )
+        )
+
+        fig = px.bar(
+            high_demand_chart,
+            x="total_vacancies",
+            y="Sectors",
+            orientation="h",
+            title="Top 10 Sectors with Highest Talent Demand",
+            color_discrete_sequence=["#00897B"],
+            labels={
+                "total_vacancies": "Total Vacancies",
+                "Sectors": "Sector"
+            }
+        )
 
         st.plotly_chart(
             fig,
             use_container_width=True
         )
 
-        sector_data = (df_filtered.groupby('parsed_categories')
-                    .agg(
-                            total_postings=('metadata_jobPostId', 'count'),
-                            total_vacancies=('numberOfVacancies', 'sum'),
-                            total_applications=('metadata_totalNumberJobApplication', 'sum'),
-                            avg_reposts=('metadata_repostCount', 'mean')
-                        )
-                    .reset_index()
-                    )
+    # ============================================================
+    # LOWEST APPLICATIONS PER VACANCY
+    # ============================================================
 
-        # Rename sector column
-        sector_data = sector_data.rename(columns={'parsed_categories': 'Sectors'})
+    with st.expander(
+        "Which sectors may be struggling to find enough applicants?"
+    ):
 
-        # Same filter for BOTH analyses
-        sector_data = sector_data[sector_data['total_postings'] >= 30]
+        st.caption(
+            "Sectors with fewer applications per vacancy may "
+            "indicate a potential skills gap."
+        )
 
-        # Calculate applications per vacancy
-        sector_data['applications_per_vacancy'] = (sector_data['total_applications']/sector_data['total_vacancies']).replace([np.inf, -np.inf], np.nan)
+        low_applications = (
+            sector_data
+            .sort_values(
+                "applications_per_vacancy",
+                ascending=True
+            )
+            .head(10)
+        )
 
-        # Remove invalid values
-        sector_data = sector_data.dropna(subset=['applications_per_vacancy'])
+        st.dataframe(
+            low_applications[
+                [
+                    "Sectors",
+                    "total_vacancies",
+                    "total_applications",
+                    "applications_per_vacancy"
+                ]
+            ],
+            use_container_width=True,
+            hide_index=True
+        )
 
-    with st.expander( "Which sectors have the highest talent demand?"):
-        st.caption("Sectors with more vacancies represent higher employer demand for talent.")
+        low_applications_chart = (
+            low_applications
+            .sort_values(
+                "applications_per_vacancy",
+                ascending=False
+            )
+        )
 
-        high_demand = sector_data.sort_values('total_vacancies',ascending=False).head(10)
-        st.dataframe(high_demand[
-                    ['Sectors',
-                    'total_vacancies',
-                    'total_applications',
-                    'applications_per_vacancy'
-                    ]],use_container_width=True) 
-        
-        high_demand_chart = high_demand.sort_values('total_vacancies',ascending=True)
         fig = px.bar(
-                high_demand_chart,
-                x='total_vacancies',
-                y='Sectors',
-                orientation='h',
-                title='Top 10 Sectors with Highest Talent Demand',
-                labels={
-                    'total_vacancies': 'Total Vacancies',
-                    'Sectors': 'Sector'}
-                )
-        st.plotly_chart(fig, use_container_width=True)
+            low_applications_chart,
+            x="applications_per_vacancy",
+            y="Sectors",
+            orientation="h",
+            title="Top 10 Sectors with Lowest Applications per Vacancy",
+            color_discrete_sequence=["#3F51B5"],
+            labels={
+                "applications_per_vacancy": "Applications per Vacancy",
+                "Sectors": "Sector"
+            }
+        )
 
-        
-    with st.expander( "Which sectors may be struggling to find enough applicants?",):
-        st.caption("Sectors with fewer applications per vacancy may indicate a potential skills gap.")
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
 
-        low_applications = sector_data.sort_values('applications_per_vacancy',ascending=True).head(10)
-        st.dataframe(low_applications[
-                    ['Sectors',
-                    'total_vacancies',
-                    'total_applications',
-                    'applications_per_vacancy'
-                    ]],use_container_width=True)
-        low_applications_chart = low_applications.sort_values('applications_per_vacancy',ascending=False)
-        fig = px.bar(
-                    low_applications_chart,
-                    x='applications_per_vacancy',
-                    y='Sectors',
-                    orientation='h',
-                    title='Top 10 Sectors with Lowest Applications per Vacancy',
-                    labels={
-                        'applications_per_vacancy': 'Applications per Vacancy',
-                        'Sectors': 'Sector'
-                    })
+    # ============================================================
+    # POTENTIAL SKILLS GAPS
+    # ============================================================
 
-        st.plotly_chart(fig,use_container_width=True)
+    with st.expander("Which sectors show potential skills gaps?"):
 
-    with st.expander( "Which sectors show potential skills gaps?"):
-        st.caption("These sectors have high vacancy demand and relatively low applications per vacancy.")
+        st.caption(
+            "These sectors have high vacancy demand and relatively "
+            "low applications per vacancy."
+        )
 
         # Get sectors appearing in BOTH top 10 lists
-        high_demand_sectors = set(high_demand['Sectors'])
-        low_supply_sectors = set(low_applications['Sectors'])
-
-        potential_gaps = sector_data[
-            sector_data['Sectors'].isin(
-                high_demand_sectors & low_supply_sectors
-            )
-        ].sort_values(
-            'applications_per_vacancy',
-            ascending=True
+        high_demand_sectors = set(
+            high_demand["Sectors"]
         )
+
+        low_supply_sectors = set(
+            low_applications["Sectors"]
+        )
+
+        potential_gaps = (
+            sector_data[
+                sector_data["Sectors"].isin(
+                    high_demand_sectors
+                    & low_supply_sectors
+                )
+            ]
+            .sort_values(
+                "applications_per_vacancy",
+                ascending=True
+            )
+        )
+
         # Show table
         st.dataframe(
             potential_gaps[
                 [
-                    'Sectors',
-                    'total_vacancies',
-                    'total_applications',
-                    'applications_per_vacancy'
-                ]],use_container_width=True
-                )
-        # ==========================================
+                    "Sectors",
+                    "total_vacancies",
+                    "total_applications",
+                    "applications_per_vacancy"
+                ]
+            ],
+            use_container_width=True,
+            hide_index=True
+        )
+
+        # ========================================================
         # SCATTER PLOT
-        # ==========================================
+        # ========================================================
 
         fig = px.scatter(
             sector_data,
             x="total_vacancies",
             y="applications_per_vacancy",
             hover_name="Sectors",
+            color="Sectors",
             size="total_vacancies",
             title="High Talent Demand vs Applicant Supply",
             labels={
                 "total_vacancies": "Total Vacancies",
-                "applications_per_vacancy": "Applications per Vacancy"
+                "applications_per_vacancy":
+                    "Applications per Vacancy"
             }
         )
 
@@ -278,23 +464,19 @@ with tab1:
             "but relatively fewer applications per vacancy, which may "
             "indicate a potential skills gap."
         )
-
-    with st.expander( "Which sectors have the highest talent demand?"):
-        st.caption("Sectors with more vacancies represent higher employer demand for talent.")
-
 with tab2:
     with st.expander("Job Vacancy Heatmap"):
         st.subheader("Job Vacancy Heatmap")
 
         def experience_group(years):
             if years <= 2:
-                return "Entry<br>(0-2) Yrs"
+                return "Entry"
             elif years <= 5:
-                return "Mid <br>(3-5) Yrs"
+                return "Mid"
             elif years <= 10:
-                return "Senior<br>(6-10) Yrs"
+                return "Senior"
             else:
-                return "Expert<br>(10+) Yrs"
+                return "Expert"
             
         df_filtered["experience_group"] = df_filtered["minimumYearsExperience"].map(experience_group)
 
@@ -312,9 +494,14 @@ with tab2:
             z="count",
             color_continuous_scale="Blues",
             category_orders={
-            "experience_group": ["Entry(0-2) Yrs", "Mid <br>(3-5) Yrs", "Senior<br>(6-10) Yrs", "Expert<br>(10+) Yrs"],
+            "experience_group": ["Entry", "Mid", "Senior", "Expert"],
             "parsed_categories": sorted(heatmap_data["parsed_categories"].unique())},
             text_auto=True
+        )
+
+        fig.update_xaxes(
+                    ticktext=["Entry<br>(0-2) Yrs", "Mid<br>(3-5) Yrs", "Senior<br>(6-10) Yrs", "Expert<br>(10+) Yrs"], 
+                    tickvals=["Entry", "Mid", "Senior", "Expert"]
         )
         fig.update_layout(
             height=1000,
@@ -354,11 +541,16 @@ with tab2:
         },
         barmode="stack",
         category_orders={
-                "experience_group": ["Entry(0-2) Yrs", "Mid <br>(3-5) Yrs", "Senior<br>(6-10) Yrs", "Expert<br>(10+) Yrs"],
+                "experience_group": ["Entry", "Mid", "Senior", "Expert"],
                 "parsed_categories": sorted(heatmap_data["parsed_categories"].unique())}
         # text="Percentage",
         # text_auto=".0f"
     )
+        fig.update_xaxes(
+            ticktext=["Entry<br>(0-2) Yrs", "Mid<br>(3-5) Yrs", "Senior<br>(6-10) Yrs", "Expert<br>(10+) Yrs"], 
+            tickvals=["Entry", "Mid", "Senior", "Expert"]
+        )
+
 
         fig.update_layout(
             height=1000,
